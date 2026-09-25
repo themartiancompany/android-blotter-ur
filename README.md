@@ -19,7 +19,7 @@
 [comment]: <> (See the GNU Affero General Public License)
 [comment]: <> (for more details.)
 
-# `flatpak-pip-generator`
+# `android-blotter`
 
 universal recipe for
 [user repo](
