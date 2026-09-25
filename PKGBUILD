@@ -37,67 +37,74 @@
 #   hexchain
 #     <i@hexchain.org>
 
-if [[ ! -v "_build" ]]; then
-  _build="true"
+if [[ ! -v "_docs" ]]; then
+  _docs="true"
 fi
-_py=python
-_pyver="$(
-  "${_py}" \
-    -V | \
-    awk \
-      '{print $2}' || \
-  true)"
-_pymajver="${_pyver%.*}"
-_pyminver="${_pymajver#*.}"
-_pynextver="${_pymajver%.*}.$((
-  "${_pyminver}" + 1))"
-_proj=flatpak-builder-tools
-_pkg=flatpak-pip-generator
+_py="python"
+_proj=hip
+_platform=android
+_program=blotter
+_pkg=${_platform}-${_program}
 pkgbase="${_pkg}"
 pkgname=(
   "${pkgbase}"
 )
+if [[ "${_docs}" == "true" ]]; then
+  pkgname+=(
+    "${_pkg}-docs"
+  )
+fi
 pkgver=0.0.1
 _commit="737c0085912f9f7dabf9341d4608e2a77a51a73a"
 pkgrel=6
 _pkgdesc=(
-  "Tool to automatically generate"
-  "'flatpak-builder' manifest json from"
-  "a pip package name."
+  "Program which displays text on Android"
+  "(a ${_program})."
 )
 pkgdesc="${_pkgdesc[*]}"
 arch=(
   'any'
 )
 _http="https://github.com"
-_ns="flatpak"
 _ns="themartiancompany"
 url="${_http}/${_ns}/${_proj}"
 license=(
   'Apache-2.0'
 )
 depends=(
-  "${_py}>=${_pymajver}"
-  "${_py}<${_pynextver}"
-  "${_py}-packaging"
-  "${_py}-requirements-parser"
+  "termux-shortcuts-utils"
 )
 makedepends=(
-  "${_py}-build"
-  "${_py}-installer"
-  "${_py}-wheel"
-  "${_py}-setuptools"
+  "make"
 )
+if [[ "${_docs}" == "true" ]]; then
+  makedepends+=(
+    "${_py}-docutils"
+  )
+fi
 checkdepends=(
-  "${_py}-pytest"
 )
 provides=(
-  "${_py}-${_pkg}=${pkgver}"
+  "${_program}"
+)
+_android_blotter_docs_optdepends=(
+  "${_pkg}-docs:"
+    "Android blotter"
+    "documentation"
+    "and manuals."
+)
+_android_blotter_docs_ref_optdepends+=(
+ "${_pkg}:"
+   "The package this documentation"
+   "package pertains to."
+)
+optdepends=(
+  "${_android_blotter_docs_optdepends[*]}"
 )
 _tag_name="commit"
 _tag="${_commit}"
-_sum="0437e60626d0dca6adac4d5307129519012b50cd1ce8caea6044a8525bfb71aa"
-_sig_sum="cd629f4090c47550675a6e475a1054c64f93f9633a5c3724e52faa74bf51d3e6"
+_sum="SKIP"
+_sig_sum="SKIP"
 _url="${url}"
 if [[ "${_tag_name}" == "tag" ]]; then
   _archive_format="tar.gz"
@@ -116,71 +123,47 @@ sha256sums=(
   "${_sum}"
 )
 
-build() {
-  cd \
-    "${_tarname}/pip"
-  GIT_DIR='.' \
-  "${_py}" \
-    -m \
-      "build" \
-      --wheel \
-      --no-isolation
-}
-
-check() {
-  cd \
-    "${_tarname}/pip"
-  "${_py}" \
-    -m \
-      "venv" \
-    --clear \
-    --without-pip \
-    --system-site-packages \
-    "test-env"
-  "test-env/bin/${_py}" \
-    -m \
-      "installer" \
-    "dist/"*".whl"
-  "test-env/bin/${_py}" \
-    -I \
-    -m \
-      "pytest"
-}
-
-package() {
+package_android-blotter() {
   local \
-    _site_packages \
-    _site_packages_cmd=()
-  _site_packages_cmd=(
-    "import site;"
-    "print("
-      "site.getsitepackages()[0]"
-    ")"
+    _make_opts=()
+  _make_opts+=(
+    PREFIX="/usr"
+    DESTDIR="${pkgdir}"
   )
-  _site_packages=$( \
-    "${_py}" \
-      -c \
-        "${_site_packages_cmd[*]}")
   cd \
-    "${_tarname}/pip"
-  "${_py}" \
-    -m \
-      "installer" \
-      --destdir="${pkgdir}" \
-      "dist/"*".whl"
-  # Looks like the python package only
-  # produces metadata and placing the
-  # script at right location manually
-  # is actually needed.
+    "${_tarname}"
+  make \
+    "${_make_opts[@]}" \
+    install-scripts
   install \
-    -vDm755 \
-    "${_pkg}.py" \
-    "${pkgdir}${_site_packages}/${_pkg}/${_pkg}.py"
+    -Dm644 \
+    "COPYING" \
+    -t \
+    "${pkgdir}/usr/share/licenses/${pkgname}/"
+}
+
+package_android-blotter-docs() {
+  local \
+    _make_opts=()
+  pkgdesc="${pkgdesc} (documentation)"
+  depends=()
+  optdepends=(
+    "${_android_blotter_ref_optdepends[*]}"
+  )
+  provides=()
+  _make_opts+=(
+    PREFIX="/usr"
+    DESTDIR="${pkgdir}"
+  )
+  cd \
+    "${_tarname}"
+  make \
+    "${_make_opts[@]}" \
+    install-doc \
+    install-man
   install \
-    -vdm755 \
-    "${pkgdir}/usr/bin"
-  ln \
-    -s \
-    "${_site_packages}/${_pkg}/${_pkg}.py" \
-    "${pkgdir}/usr/bin/${_pkg}"
+    -Dm644 \
+    "COPYING" \
+    -t \
+    "${pkgdir}/usr/share/licenses/${pkgname}/"
 }

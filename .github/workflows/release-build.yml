@@ -1179,9 +1179,9 @@ jobs:
             ${{ github.event.release.upload_url }}
             # ${{ steps.create_release.outputs.upload_url }}
           asset_path:
-            "flatpak-pip-generator-${{ steps.version.outputs.version }}-any.pkg.tar.xz"
+            "android-blotter-${{ steps.version.outputs.version }}-any.pkg.tar.xz"
           asset_name:
-            "dogeos-android-flatpak-pip-generator-${{ steps.version.outputs.version }}-any.pkg.tar.xz"
+            "dogeos-android-android-blotter-${{ steps.version.outputs.version }}-any.pkg.tar.xz"
           asset_content_type:
             application/gzip
   arch_release:
@@ -1212,6 +1212,7 @@ jobs:
         archlinux:base-devel
       volumes: 
         - /tmp/node20:/__e/node20
+        - /tmp/node24:/__e/node24
     # approximate environment variables for actions
     # that can't be forced to use entrypoint.sh
     env:
@@ -1834,7 +1835,7 @@ jobs:
               " " \
             "PKGBUILD" \
             "makedepends" > \
-          "${HOME}/makedepends"
+            "${HOME}/makedepends"
           # ( _evmfs="false" \
           #   recipe-get \
           #     -o \
@@ -1986,9 +1987,9 @@ jobs:
             ${{ github.event.release.upload_url }}
             # ${{ steps.create_release.outputs.upload_url }}
           asset_path:
-            "flatpak-pip-generator-${{ steps.version.outputs.version }}-any.pkg.tar.xz"
+            "android-blotter-${{ steps.version.outputs.version }}-any.pkg.tar.xz"
           asset_name:
-            "dogeos-gnu-flatpak-pip-generator-${{ steps.version.outputs.version }}-any.pkg.tar.xz"
+            "dogeos-gnu-android-blotter-${{ steps.version.outputs.version }}-any.pkg.tar.xz"
           asset_content_type:
             application/gzip
   msys2_release:
@@ -1997,6 +1998,12 @@ jobs:
     strategy:
       matrix:
         include:
+          # - { sys:
+          #       MSYS,
+          #     env:
+          #       x86_64,
+          #     arch:
+          #       x86_64 }
           - { sys:
                 mingw64,
               env:
@@ -2020,19 +2027,44 @@ jobs:
           install:
             base-devel
             dos2unix
-            mingw-w64-${{ matrix.env }}-github-cli
             git
-            mingw-w64-${{ matrix.env }}-jq
             mingw-w64-${{ matrix.env }}-gcc
             mingw-w64-${{ matrix.env }}-nodejs
             python-docutils
+            tree
             unzip
+            # mingw-w64-ucrt-${{ matrix.env }}-jq
+            # mingw-w64-ucrt-${{ matrix.env }}-github-cli
       - name:
-          Upgrade Arch environment.
+          Upgrade MSYS2 environment.
         run: |
           pacman \
             -Syu \
             --noconfirm
+      - name:
+          Installs jq.
+        run: |
+          git \
+            clone \
+              --branch="jq" \
+              --single-branch \
+              --depth=1 \
+              "https://github.com/themartiancompany/fur" \
+              "${HOME}/fur"
+          rm \
+            "${HOME}/fur/mingw64/x86_64/"*".pkg.tar."*".sig"
+          tree \
+            "${HOME}"
+          pacman \
+            -Udd \
+            --noconfirm \
+            "${HOME}/fur/mingw64/x86_64/"*".pkg.tar."*
+          rm \
+            -rf \
+            "${HOME}/fur"
+          rm \
+            -rf \
+            "${HOME}/fur"
       - name:
           Installs Crash Bash Library.
         run: |
@@ -2074,10 +2106,6 @@ jobs:
       - name:
           Installs Inteppacman.
         run: |
-          pacman \
-            -S \
-            --noconfirm \
-            "tree"
           fur \
             -v \
             -p \
@@ -2215,6 +2243,24 @@ jobs:
           make \
             PREFIX="/usr" \
             install-fur
+      - name:
+          Installs jq.
+        run: |
+          if [[ "${{ matrix.sys }}" == "mingw64" ]]; then \
+            fur \
+              -v \
+              -p \
+                "pacman" \
+              -t \
+                "ci" \
+              -T \
+              "jq"; \
+          elif [[ "${{ matrix.sys }}" == "MSYS" ]]; then \
+            pacman \
+              -S \
+              --noconfirm \
+              "jq"; \
+          fi
       # - name:
       #     Installs Rust.
       #   run: |
@@ -2240,31 +2286,65 @@ jobs:
           GITHUB_TOKEN:
             ${{ secrets.GITHUB_TOKEN }}
         run: |
-          pacman \
-            -S \
-            --noconfirm \
-            "mingw-w64-${{ matrix.env }}-github-cli"
-          bash \
-            ".github/gur-mini" \
-            "themartiancompany" \
-            "evm-gnupg" \
-            "0.0.0.0.0.0.0.0.1.1.1.1.1.1-15"
-          # git \
-          #   clone \
-          #     --single-branch \
-          #     --depth=1 \
-          #     "https://github.com/themartiancompany/evm-gnupg" \
-          #     "${HOME}/evm-gnupg-src" || \
-          # true
-          # cd \
-          #   "${HOME}/evm-gnupg-src"
-          # make \
-          #   -C \
-          #       "${HOME}/evm-gnupg-src" \
-          #   PREFIX="/usr" \
-          #   install-scripts
+          git \
+            clone \
+              --single-branch \
+              --depth=1 \
+              "https://github.com/themartiancompany/evm-gnupg" \
+              "${HOME}/evm-gnupg-src" || \
+          true
+          cd \
+            "${HOME}/evm-gnupg-src"
+          make \
+            -C \
+                "${HOME}/evm-gnupg-src" \
+            PREFIX="/usr" \
+            install-scripts
+          # if [[ "${{ matrix.sys }}" == "mingw64" ]]; then \
+          #   fur \
+          #     -v \
+          #     -t \
+          #       "ci" \
+          #     -m \
+          #       "github" \
+          #     -R \
+          #       "n" \
+          #     -p \
+          #       "pacman" \
+          #     "github-cli" || \
+          #   true; \
+          #   pacman \
+          #     -Ql \
+          #     "github-cli"; \
+          # elif [[ "${{ matrix.sys }}" == "MSYS" ]]; then \
+          #   pacman \
+          #     -S \
+          #     --noconfirm \
+          #     "mingw-w64-ucrt-${{ matrix.env }}-github-cli"; \
+          #   pacman \
+          #     -Ql \
+          #     "mingw-w64-ucrt-${{ matrix.env }}-github-cli"; \
+          #   _bin="$( \
+          #     dirname "$( \
+          #       command \
+          #         -v \
+          #         "env")")"; \
+          #   ln \
+          #     -s \
+          #     "/ucrt64/bin/github-cli" \
+          #     "${_bin}/github-cli" || \
+          #   true; \
+          # fi
+          # bash \
+          #   ".github/gur-mini" \
+          #   "themartiancompany" \
+          #   "evm-gnupg" \
+          #   "0.0.0.0.0.0.0.0.1.1.1.1.1.1-15"
       - name:
           Installs build dependencies.
+        env:
+          GH_TOKEN:
+            ${{ secrets.GITHUB_TOKEN }}
         run: |
           pacman \
             -Ss \
@@ -2363,16 +2443,16 @@ jobs:
                   "name")"; \
             echo \
               "Installing MinGW '${_depend_name}' build dependency with fur."; \
-              fur \
-                -v \
-                -t \
-                  "ci" \
-                -m \
-                  "github" \
-                -p \
-                  "pacman" \
-                "${_depend_name}" || \
-              true; \
+            fur \
+              -v \
+              -t \
+                "ci" \
+              -m \
+                "github" \
+              -p \
+                "pacman" \
+              "${_depend_name}" || \
+            true; \
           done
       - name:
           Builds the Windows package.
@@ -2419,11 +2499,24 @@ jobs:
             -v \
             "PKGBUILD" \
             "sha256sums"
+          if [[ "${{ env.sys }}" == "MSYS" ]]; then \
+            _msys2_libc="msys2"; \
+          elif [[ "${{ env.sys }}" == "mingw64" ]]; then \
+            _msys2_libc="mingw64"; \
+          fi; \
           PKGEXT='.pkg.tar.xz' \
           _evmfs="false" \
           _git="false" \
           _git_service="github" \
-          makepkg \
+          PKGEXT=".pkg.tar.xz" \
+          reallymakepkg \
+            -v \
+            -w \
+              "${HOME}/${_pkgbase}-build" \
+            -u \
+            -G \
+              "${_msys2_libc}" \
+            -- \
             -df \
             --nocheck \
             --skippgpcheck
@@ -2522,9 +2615,9 @@ jobs:
             ${{ github.event.release.upload_url }}
             # ${{ steps.create_release.outputs.upload_url }}
           asset_path:
-            "flatpak-pip-generator-${{ steps.version.outputs.version }}-any.pkg.tar.xz"
+            "android-blotter-${{ steps.version.outputs.version }}-any.pkg.tar.xz"
           asset_name:
-            "dogeos-windows-flatpak-pip-generator-${{ steps.version.outputs.version }}-any.pkg.tar.xz"
+            "dogeos-windows-android-blotter-${{ steps.version.outputs.version }}-any.pkg.tar.xz"
           asset_content_type:
             application/gzip
 
