@@ -67,7 +67,7 @@ arch=(
 )
 _http="https://github.com"
 _ns="themartiancompany"
-url="${_http}/${_ns}/${_proj}"
+url="${_http}/${_ns}/${_pkg}"
 license=(
   'Apache-2.0'
 )
