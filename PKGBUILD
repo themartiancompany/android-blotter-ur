@@ -54,9 +54,9 @@ if [[ "${_docs}" == "true" ]]; then
     "${_pkg}-docs"
   )
 fi
-pkgver=0.0.1
-_commit="737c0085912f9f7dabf9341d4608e2a77a51a73a"
-pkgrel=6
+pkgver=0.0.0.0.0.0.1
+_commit="3347aae060d552462963c6bec0b184cda7fee5f6"
+pkgrel=1
 _pkgdesc=(
   "Program which displays text on Android"
   "(a ${_program})."
